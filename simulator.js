@@ -1,236 +1,368 @@
 const { chromium } = require('playwright');
 
-// 📱 Device profiles
-const devices = [
-  // 💻 Windows Desktops
+// =====================================================================
+// QUICK SETTINGS (edit these first)
+// =====================================================================
+const SITE_URL = 'https://playwright.dev/'; // Main URL to visit
+const HEADLESS = false; // true = no browser UI, false = visible browser
+const BROWSER_ARGS = ['--no-sandbox', '--disable-setuid-sandbox'];
+
+// Number of users in one run = random integer between min and max.
+const USERS_PER_RUN = { min: 5, max: 7 };
+
+// Delay before starting next user.
+const DELAY_BETWEEN_USERS_MS = { min: 5000, max: 15000 };
+
+// Small random "human pause" before actions.
+const ACTION_PAUSE_MS = { min: 600, max: 2500 };
+
+// Max time allowed for page/navigation actions.
+const NAVIGATION_TIMEOUT_MS = 45000;
+
+// Use ONLY these device names (you can comment names in/out).
+const ENABLED_DEVICE_NAMES = [
+  'desktop-1080p',
+  'desktop-1366',
+  'desktop-1600',
+  'macbook-air',
+  'macbook-pro',
+  'iphone-safari',
+  'android-chrome'
+  // 'android-samsung',
+  // 'tablet-ipad'
+];
+
+// =====================================================================
+// DEVICE DEFINITIONS (leave as-is; choose with ENABLED_DEVICE_NAMES)
+// =====================================================================
+const ALL_DEVICES = [
   {
-    name: "desktop-1080p",
+    name: 'desktop-1080p',
+    weight: 22,
     viewport: { width: 1920, height: 1080 },
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36'
   },
   {
-    name: "desktop-1366",
+    name: 'desktop-1366',
+    weight: 20,
     viewport: { width: 1366, height: 768 },
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36'
   },
   {
-    name: "desktop-1600",
+    name: 'desktop-1600',
+    weight: 14,
     viewport: { width: 1600, height: 900 },
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36'
   },
-
-  // 🍎 MacBooks
   {
-    name: "macbook-air",
+    name: 'macbook-air',
+    weight: 10,
     viewport: { width: 1440, height: 900 },
-    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 Chrome/122 Safari/537.36'
   },
   {
-    name: "macbook-pro",
+    name: 'macbook-pro',
+    weight: 8,
     viewport: { width: 1728, height: 1117 },
-    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/537.36 Chrome/122 Safari/537.36'
   },
-
-  // 📱 iPhone (Safari)
   {
-    name: "iphone-safari",
+    name: 'iphone-safari',
+    weight: 12,
     viewport: { width: 390, height: 844 },
-    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
     isMobile: true,
     hasTouch: true
   },
-
-  // 🤖 Android (Chrome)
   {
-    name: "android-chrome",
+    name: 'android-chrome',
+    weight: 9,
     viewport: { width: 412, height: 915 },
-    userAgent: "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
+    userAgent:
+      'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Mobile Safari/537.36',
     isMobile: true,
     hasTouch: true
   },
-
-  // 📱 Samsung Internet (extra realism)
   {
-    name: "android-samsung",
+    name: 'android-samsung',
+    weight: 3,
     viewport: { width: 360, height: 800 },
-    userAgent: "Mozilla/5.0 (Linux; Android 12; SAMSUNG SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/19.0 Chrome/102.0 Mobile Safari/537.36",
+    userAgent:
+      'Mozilla/5.0 (Linux; Android 13; SAMSUNG SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/24.0 Chrome/122.0 Mobile Safari/537.36',
     isMobile: true,
     hasTouch: true
   },
-
-  // 📲 Tablet (iPad)
   {
-    name: "tablet",
-    viewport: { width: 768, height: 1024 },
-    userAgent: "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+    name: 'tablet-ipad',
+    weight: 5,
+    viewport: { width: 820, height: 1180 },
+    userAgent:
+      'Mozilla/5.0 (iPad; CPU OS 17_3 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
     isMobile: true,
     hasTouch: true
   }
 ];
 
-// 🎯 Realistic device distribution
+const ENABLED_DEVICES = ALL_DEVICES.filter((device) =>
+  ENABLED_DEVICE_NAMES.includes(device.name)
+);
+
+// =====================================================================
+// ADVANCED BEHAVIOR SETTINGS
+// =====================================================================
+const CONFIG = {
+  siteUrl: SITE_URL,
+  headless: HEADLESS,
+  browserArgs: BROWSER_ARGS,
+  usersPerRun: USERS_PER_RUN,
+  delayBetweenUsersMs: DELAY_BETWEEN_USERS_MS,
+  actionPauseMs: ACTION_PAUSE_MS,
+  navigationTimeoutMs: NAVIGATION_TIMEOUT_MS,
+  devices: ENABLED_DEVICES,
+
+  // Each object is one behavior profile:
+  // - name: label used in logs
+  // - weight: chance of selecting this profile (higher = more often)
+  // - initialReadMs: random reading time immediately after landing
+  // - navSteps: random number of internal link clicks to perform
+  // - stepReadMs: random reading time after EACH nav click
+  // - loopPauseMs: random wait between scroll/mouse actions while "reading"
+  behaviorProfiles: [
+    {
+      name: 'bounce',
+      weight: 40,
+      initialReadMs: { min: 10000, max: 25000 },
+      navSteps: { min: 0, max: 0 }, // bounce users do NOT navigate
+      stepReadMs: { min: 0, max: 0 }, // unused when navSteps is 0..0
+      loopPauseMs: { min: 1200, max: 3200 }
+    },
+    {
+      name: 'browse',
+      weight: 35,
+      initialReadMs: { min: 25000, max: 60000 },
+      navSteps: { min: 2, max: 4 }, // does a few internal clicks
+      stepReadMs: { min: 15000, max: 50000 },
+      loopPauseMs: { min: 1200, max: 4000 }
+    },
+    {
+      name: 'intent',
+      weight: 25,
+      initialReadMs: { min: 30000, max: 70000 },
+      navSteps: { min: 3, max: 6 }, // deeper browsing journey
+      stepReadMs: { min: 25000, max: 70000 },
+      loopPauseMs: { min: 1000, max: 3500 }
+    }
+  ],
+
+  scroll: {
+    downPixels: { min: 180, max: 700 },
+    upPixels: { min: 120, max: 420 },
+    downChance: 0.7
+  },
+
+  mouseMove: {
+    x: { min: 30, max: 1400 },
+    y: { min: 30, max: 900 },
+    steps: { min: 5, max: 18 }
+  },
+
+  nav: {
+    selector: 'a[href]',
+    maxCandidatesToScan: 120,
+    postClickPauseMs: { min: 1000, max: 3500 }
+  }
+};
+
+function randomIntInRange(range) {
+  const min = Math.floor(Math.min(range.min, range.max));
+  const max = Math.floor(Math.max(range.min, range.max));
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomWeightedPick(items, weightKey = 'weight') {
+  const totalWeight = items.reduce((sum, item) => sum + Math.max(0, item[weightKey] || 0), 0);
+  if (totalWeight <= 0) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  let cursor = Math.random() * totalWeight;
+  for (const item of items) {
+    cursor -= Math.max(0, item[weightKey] || 0);
+    if (cursor <= 0) return item;
+  }
+  return items[items.length - 1];
+}
+
+async function waitRandom(page, range) {
+  await page.waitForTimeout(randomIntInRange(range));
+}
+
+async function humanPause(page) {
+  await waitRandom(page, CONFIG.actionPauseMs);
+}
+
+function getSiteHost(url) {
+  return new URL(url).host;
+}
+
 function getRandomDevice() {
-  const r = Math.random();
-
-  // 💻 Desktop ~65%
-  if (r < 0.65) {
-    const desktops = devices.slice(0, 5);
-    return desktops[Math.floor(Math.random() * desktops.length)];
+  if (!CONFIG.devices.length) {
+    throw new Error('No enabled devices. Add names to ENABLED_DEVICE_NAMES.');
   }
-
-  // 📱 Mobile ~25%
-  if (r < 0.9) {
-    const mobiles = devices.slice(5, 8);
-
-    const m = Math.random();
-    if (m < 0.5) return mobiles[0];   // iPhone Safari
-    if (m < 0.85) return mobiles[1];  // Android Chrome
-    return mobiles[2];                // Samsung Internet
-  }
-
-  // 📲 Tablet ~10%
-  return devices[8];
+  return randomWeightedPick(CONFIG.devices);
 }
 
-// 🧠 Human-like reading + scrolling
-async function simulateReading(page, minTime = 20000, maxTime = 90000) {
-  const totalTime = Math.floor(Math.random() * (maxTime - minTime) + minTime);
-  const start = Date.now();
+async function scrollAndMove(page) {
+  const directionRoll = Math.random();
+  const deltaY =
+    directionRoll < CONFIG.scroll.downChance
+      ? randomIntInRange(CONFIG.scroll.downPixels)
+      : -randomIntInRange(CONFIG.scroll.upPixels);
 
-  while (Date.now() - start < totalTime) {
-    const direction = Math.random();
+  await page.mouse.wheel(0, deltaY);
+  await page.mouse.move(
+    randomIntInRange(CONFIG.mouseMove.x),
+    randomIntInRange(CONFIG.mouseMove.y),
+    { steps: randomIntInRange(CONFIG.mouseMove.steps) }
+  );
+}
 
-    if (direction < 0.7) {
-      await page.mouse.wheel(0, Math.random() * 500 + 200);
-    } else {
-      await page.mouse.wheel(0, -(Math.random() * 300 + 100));
-    }
+async function simulateReading(page, totalReadMsRange, loopPauseMsRange) {
+  const totalReadTime = randomIntInRange(totalReadMsRange);
+  const startedAt = Date.now();
 
-    await page.mouse.move(
-      Math.random() * 800,
-      Math.random() * 600,
-      { steps: 10 }
-    );
-
-    await page.waitForTimeout(Math.random() * 3000 + 1000);
+  while (Date.now() - startedAt < totalReadTime) {
+    await scrollAndMove(page);
+    await waitRandom(page, loopPauseMsRange);
   }
 }
 
-// 🤔 Pause before actions
-async function humanPause() {
-  await new Promise(r => setTimeout(r, Math.random() * 5000 + 2000));
-}
+async function clickRandomNav(page, siteHost) {
+  const links = page.locator(CONFIG.nav.selector);
+  const count = await links.count();
+  if (count === 0) return false;
 
-// 🔀 Random navbar navigation
-async function clickRandomNav(page) {
-  const links = await page.locator('#WDxLfe a').all();
-  const valid = [];
+  const candidates = [];
+  const scanCount = Math.min(count, CONFIG.nav.maxCandidatesToScan);
 
-  for (const link of links) {
-    const href = await link.getAttribute('href');
+  for (let i = 0; i < scanCount; i++) {
+    const link = links.nth(i);
     const visible = await link.isVisible();
+    if (!visible) continue;
 
-    if (visible && href && !page.url().includes(href)) {
-      valid.push(link);
+    const href = await link.getAttribute('href');
+    if (!href) continue;
+
+    let target;
+    try {
+      target = new URL(href, page.url());
+    } catch {
+      continue;
     }
+
+    // Keep navigation inside the target site.
+    if (target.host !== siteHost) continue;
+    if (target.href === page.url()) continue;
+
+    candidates.push({ index: i, target: target.href });
   }
 
-  if (valid.length === 0) return;
+  if (!candidates.length) return false;
 
-  const chosen = valid[Math.floor(Math.random() * valid.length)];
-  const text = await chosen.innerText();
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  await humanPause(page);
 
-  console.log("Clicking:", text.trim());
-
-  await humanPause();
-  await chosen.click();
-}
-
-// 👤 Bounce user
-async function bounceUser(page) {
-  await page.goto('https://sites.google.com/view/vorma-ai/home', {
-    waitUntil: 'load'
-  });
-
-  await simulateReading(page, 10000, 25000);
-}
-
-// 🔍 Browsing user
-async function browsingUser(page) {
-  await page.goto('https://sites.google.com/view/vorma-ai/home', {
-    waitUntil: 'load'
-  });
-
-  await simulateReading(page, 25000, 60000);
-
-  const steps = Math.floor(Math.random() * 3) + 2;
-
-  for (let i = 0; i < steps; i++) {
-    await clickRandomNav(page);
-    await simulateReading(page, 20000, 60000);
+  try {
+    await links.nth(chosen.index).click({ timeout: CONFIG.navigationTimeoutMs });
+    await waitRandom(page, CONFIG.nav.postClickPauseMs);
+    return true;
+  } catch {
+    return false;
   }
 }
 
-// 🎯 Intent user
-async function intentUser(page) {
-  await page.goto('https://sites.google.com/view/vorma-ai/home', {
-    waitUntil: 'load'
+async function runSingleUser(browser, userIndex, totalUsers, siteHost) {
+  const device = getRandomDevice();
+  const behavior = randomWeightedPick(CONFIG.behaviorProfiles);
+
+  console.log(
+    `[Session ${userIndex + 1}/${totalUsers}] device=${device.name}, behavior=${behavior.name}`
+  );
+
+  const context = await browser.newContext({
+    viewport: device.viewport,
+    userAgent: device.userAgent,
+    isMobile: !!device.isMobile,
+    hasTouch: !!device.hasTouch
   });
 
-  await simulateReading(page, 30000, 70000);
-
-  const steps = Math.floor(Math.random() * 4) + 3;
-
-  for (let i = 0; i < steps; i++) {
-    await clickRandomNav(page);
-    await simulateReading(page, 30000, 80000);
-  }
-}
-
-// 🚀 Main runner
-async function runSimulation() {
-  const browser = await chromium.launch({
-    headless: false, // change to true on VPS
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-
-  // 👇 5–7 users per run
-  const sessions = Math.floor(Math.random() * 3) + 5;
-
-  for (let i = 0; i < sessions; i++) {
-
-    const device = getRandomDevice();
-    console.log("Device:", device.name);
-
-    const context = await browser.newContext({
-      viewport: device.viewport,
-      userAgent: device.userAgent,
-      isMobile: device.isMobile || false,
-      hasTouch: device.hasTouch || false
+  try {
+    const page = await context.newPage();
+    await page.goto(CONFIG.siteUrl, {
+      waitUntil: 'load',
+      timeout: CONFIG.navigationTimeoutMs
     });
 
-    const page = await context.newPage();
-    const rand = Math.random();
+    await simulateReading(page, behavior.initialReadMs, behavior.loopPauseMs);
 
-    try {
-      if (rand < 0.4) {
-        await bounceUser(page);
-      } else if (rand < 0.75) {
-        await browsingUser(page);
-      } else {
-        await intentUser(page);
-      }
-    } catch (err) {
-      console.log("Error in session:", err.message);
+    const steps = randomIntInRange(behavior.navSteps);
+    for (let step = 0; step < steps; step++) {
+      const moved = await clickRandomNav(page, siteHost);
+      if (!moved) break;
+      await simulateReading(page, behavior.stepReadMs, behavior.loopPauseMs);
     }
-
+  } catch (error) {
+    console.log(`[Session ${userIndex + 1}] error: ${error.message}`);
+  } finally {
     await context.close();
-
-    // ⏱️ Delay between users
-    await new Promise(r => setTimeout(r, Math.random() * 10000 + 5000));
   }
-
-  await browser.close();
 }
 
-runSimulation();
+async function runSimulation() {
+  const usersThisRun = randomIntInRange(CONFIG.usersPerRun);
+  const siteHost = getSiteHost(CONFIG.siteUrl);
+
+  console.log(`Starting simulation on ${CONFIG.siteUrl}`);
+  console.log(`Users this run: ${usersThisRun}`);
+
+  const browser = await chromium.launch({
+    headless: CONFIG.headless,
+    args: CONFIG.browserArgs
+  });
+
+  try {
+    for (let i = 0; i < usersThisRun; i++) {
+      await runSingleUser(browser, i, usersThisRun, siteHost);
+
+      if (i < usersThisRun - 1) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, randomIntInRange(CONFIG.delayBetweenUsersMs))
+        );
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+if (require.main === module) {
+  runSimulation().catch((error) => {
+    console.error('Simulation failed:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  CONFIG,
+  ALL_DEVICES,
+  ENABLED_DEVICE_NAMES,
+  runSimulation,
+  randomIntInRange,
+  randomWeightedPick
+};
