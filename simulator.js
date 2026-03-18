@@ -167,6 +167,7 @@ async function runSimulation() {
   const siteHost = getSiteHost(CONFIG.siteUrl);
 
   console.log('Built out of neccessity by Thusaraka :)');
+  console.log('---------------------------------------');
   console.log(`Starting simulation on ${CONFIG.siteUrl}`);
   console.log(`Users this run: ${usersThisRun}`);
 
