@@ -1,5 +1,5 @@
-﻿# GA4 Realtime User Behavior Simulator
-
+# GA4 Realtime User Behavior Simulator
+                                                                                                                                              
 Simulates realistic user behavior (scrolling, internal navigation, device variation, and dwell time) so you can observe activity in Google Analytics 4 Realtime reports.
 
 ## 1. Prerequisites
@@ -143,3 +143,7 @@ npm install
 npm run setup
 npm start
 ```
+
+Built out of necessity by Thusaraka :)
+
+
