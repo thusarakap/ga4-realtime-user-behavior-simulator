@@ -166,6 +166,7 @@ async function runSimulation() {
   const usersThisRun = randomIntInRange(CONFIG.usersPerRun);
   const siteHost = getSiteHost(CONFIG.siteUrl);
 
+  console.log('Built out of neccessity by Thusaraka :)');
   console.log(`Starting simulation on ${CONFIG.siteUrl}`);
   console.log(`Users this run: ${usersThisRun}`);
 
