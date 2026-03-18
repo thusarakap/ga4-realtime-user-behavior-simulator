@@ -47,7 +47,23 @@ async function scrollAndMove(page) {
       ? randomIntInRange(CONFIG.scroll.downPixels)
       : -randomIntInRange(CONFIG.scroll.upPixels);
 
-  await page.mouse.wheel(0, deltaY);
+  const smoothConfig = CONFIG.scroll.smooth;
+  if (smoothConfig && smoothConfig.enabled) {
+    const stepSize = Math.max(1, randomIntInRange(smoothConfig.stepPixels));
+    const direction = Math.sign(deltaY) || 1;
+    const totalDistance = Math.abs(deltaY);
+
+    let moved = 0;
+    while (moved < totalDistance) {
+      const chunk = Math.min(stepSize, totalDistance - moved);
+      await page.mouse.wheel(0, chunk * direction);
+      moved += chunk;
+      await waitRandom(page, smoothConfig.stepPauseMs);
+    }
+  } else {
+    await page.mouse.wheel(0, deltaY);
+  }
+
   await page.mouse.move(
     randomIntInRange(CONFIG.mouseMove.x),
     randomIntInRange(CONFIG.mouseMove.y),
