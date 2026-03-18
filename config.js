@@ -179,14 +179,14 @@ const ALL_DEVICES = [
   }
 ];
 
+// =====================================================================
+
 const ENABLED_DEVICE_NAMES = Object.entries(DEVICE_ENABLE_FLAGS)
   .filter(([, enabled]) => Number(enabled) === 1)
   .map(([name]) => name);
 
 const ENABLED_DEVICES = ALL_DEVICES.filter((device) => ENABLED_DEVICE_NAMES.includes(device.name));
 CONFIG.devices = ENABLED_DEVICES;
-
-// =====================================================================
 
 module.exports = {
   CONFIG,
