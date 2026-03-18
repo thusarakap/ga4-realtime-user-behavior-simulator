@@ -144,6 +144,6 @@ npm run setup
 npm start
 ```
 
-Made out of necessity by Thusaraka :)
+Built out of necessity by Thusaraka :)
 
 
