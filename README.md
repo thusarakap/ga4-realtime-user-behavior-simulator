@@ -144,6 +144,16 @@ npm run setup
 npm start
 ```
 
+## 6. (Optional) Simulate users from different countries
+
+To simulate traffic from multiple geographic locations, you can run the simulator through a VPN.
+
+- Connect to a VPN server in your desired country before running the simulator
+- Each run will then appear as traffic originating from that location in GA4
+- You can switch VPN locations between runs to simulate global traffic distribution
+
+---
+
 Built out of necessity by Thusaraka :)
 
 
